@@ -479,7 +479,7 @@ func (b *SimulatedBackend) callContractAtHead(ctx context.Context, call ethereum
 	if err != nil {
 		return nil, err
 	}
-	res, err := b.callContract(ctx, call, b.blockchain.CurrentBlock(), stateDB)
+	res, err := b.callContract(ctx, call, b.blockchain.CurrentBlock(), stateDB, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -496,7 +496,7 @@ func (b *SimulatedBackend) PendingCallContract(ctx context.Context, call ethereu
 	defer b.mu.Unlock()
 	defer b.pendingState.RevertToSnapshot(b.pendingState.Snapshot())
 
-	res, err := b.callContract(ctx, call, b.pendingBlock.Header(), b.pendingState)
+	res, err := b.callContract(ctx, call, b.pendingBlock.Header(), b.pendingState, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -590,7 +590,7 @@ func (b *SimulatedBackend) EstimateGas(ctx context.Context, call ethereum.CallMs
 		call.Gas = gas
 
 		snapshot := b.pendingState.Snapshot()
-		res, err := b.callContract(ctx, call, b.pendingBlock.Header(), b.pendingState)
+		res, err := b.callContract(ctx, call, b.pendingBlock.Header(), b.pendingState, nil)
 		b.pendingState.RevertToSnapshot(snapshot)
 
 		if err != nil {
@@ -640,7 +640,7 @@ func (b *SimulatedBackend) EstimateGas(ctx context.Context, call ethereum.CallMs
 
 // callContract implements common code between normal and pending contract calls.
 // state is modified during execution, make sure to copy it if necessary.
-func (b *SimulatedBackend) callContract(ctx context.Context, call ethereum.CallMsg, header *types.Header, stateDB *state.StateDB) (*core.ExecutionResult, error) {
+func (b *SimulatedBackend) callContract(ctx context.Context, call ethereum.CallMsg, header *types.Header, stateDB *state.StateDB, tx *types.Transaction) (*core.ExecutionResult, error) {
 	// Gas prices post 1559 need to be initialized
 	if call.GasPrice != nil && (call.GasFeeCap != nil || call.GasTipCap != nil) {
 		return nil, errors.New("both gasPrice and (maxFeePerGas or maxPriorityFeePerGas) specified")
@@ -704,7 +704,7 @@ func (b *SimulatedBackend) callContract(ctx context.Context, call ethereum.CallM
 	vmEnv := vm.NewEVM(evmContext, txContext, stateDB, b.config, vm.Config{NoBaseFee: true})
 	gasPool := new(core.GasPool).AddGas(math.MaxUint64)
 
-	return core.ApplyMessage(vmEnv, msg, gasPool)
+	return core.ApplyMessage(vmEnv, msg, gasPool, tx)
 }
 
 // SendTransaction updates the pending block to include the given transaction.

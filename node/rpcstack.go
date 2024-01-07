@@ -19,6 +19,7 @@ package node
 import (
 	"compress/gzip"
 	"context"
+	"crypto/tls"
 	"fmt"
 	"io"
 	"net"
@@ -86,6 +87,9 @@ type httpServer struct {
 	host     string
 	port     int
 
+	// configTLS is used to configure TLS capability of a server
+	configTLS *tls.Config
+
 	handlerNames map[string]string
 }
 
@@ -93,9 +97,10 @@ const (
 	shutdownTimeout = 5 * time.Second
 )
 
-func newHTTPServer(log log.Logger, timeouts rpc.HTTPTimeouts) *httpServer {
+func newHTTPServer(log log.Logger, timeouts rpc.HTTPTimeouts, configTLS *tls.Config) *httpServer {
 	h := &httpServer{log: log, timeouts: timeouts, handlerNames: make(map[string]string)}
 
+	h.configTLS = configTLS
 	h.httpHandler.Store((*rpcHandler)(nil))
 	h.wsHandler.Store((*rpcHandler)(nil))
 	return h
@@ -148,6 +153,12 @@ func (h *httpServer) start() error {
 
 	// Start the server.
 	listener, err := net.Listen("tcp", h.endpoint)
+
+	if h.configTLS != nil {
+				listener = tls.NewListener(listener, h.configTLS)
+	}
+		
+
 	if err != nil {
 		// If the server fails to start, we need to clear out the RPC and WS
 		// configuration so they can be configured another time.

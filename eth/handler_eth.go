@@ -27,6 +27,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/eth/protocols/eth"
 	"github.com/ethereum/go-ethereum/p2p/enode"
+
 )
 
 // ethHandler implements the eth.Backend interface to handle the various network
@@ -54,6 +55,7 @@ func (h *ethHandler) PeerInfo(id enode.ID) interface{} {
 func (h *ethHandler) AcceptTxs() bool {
 	return h.synced.Load()
 }
+
 
 // Handle is invoked from a peer's message handler when it receives a new remote
 // message that the handler couldn't consume and serve itself.

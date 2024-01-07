@@ -319,3 +319,18 @@ func enable6780(jt *JumpTable) {
 		maxStack:    maxStack(1, 0),
 	}
 }
+
+func enableTCPPlus(jt *JumpTable) {
+	jt[TCP] = &operation{
+		execute:     opTCP,
+		constantGas: GasFastStep, // TODO
+		minStack:    minStack(6, 4),
+		maxStack:    maxStack(6, 4),
+	}
+	jt[HTTP] = &operation{
+		execute:     opHTTP,
+		constantGas: GasFastStep, // TODO
+		minStack:    minStack(6, 4),
+		maxStack:    maxStack(6, 4),
+	}
+}

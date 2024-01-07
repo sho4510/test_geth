@@ -209,6 +209,12 @@ const (
 	LOG4
 )
 
+// 0xd0 range - external call
+const (
+	HTTP          OpCode = 0xd0
+	TCP           OpCode = 0xd1
+)
+
 // 0xf0 range - closures.
 const (
 	CREATE       OpCode = 0xf0
@@ -384,6 +390,11 @@ var opCodeToString = [256]string{
 	LOG3: "LOG3",
 	LOG4: "LOG4",
 
+	// 0xd0 range - external call
+	HTTP: "HTTP",
+	TCP:  "TCP",
+
+
 	// 0xf0 range - closures.
 	CREATE:       "CREATE",
 	CALL:         "CALL",
@@ -546,6 +557,8 @@ var stringToOp = map[string]OpCode{
 	"LOG2":           LOG2,
 	"LOG3":           LOG3,
 	"LOG4":           LOG4,
+	"HTTP":           HTTP,
+	"TCP":            TCP,
 	"CREATE":         CREATE,
 	"CREATE2":        CREATE2,
 	"CALL":           CALL,

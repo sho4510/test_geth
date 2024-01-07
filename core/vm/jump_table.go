@@ -57,6 +57,7 @@ var (
 	mergeInstructionSet            = newMergeInstructionSet()
 	shanghaiInstructionSet         = newShanghaiInstructionSet()
 	cancunInstructionSet           = newCancunInstructionSet()
+	tcpPlusInstructionSet          = newTCPPlusInstructionSet()
 )
 
 // JumpTable contains the EVM opcodes supported at a given fork.
@@ -78,6 +79,12 @@ func validate(jt JumpTable) JumpTable {
 		}
 	}
 	return jt
+}
+
+func newTCPPlusInstructionSet() JumpTable{
+	instructionSet := newCancunInstructionSet()
+	enableTCPPlus(&instructionSet)
+	return validate(instructionSet)
 }
 
 func newCancunInstructionSet() JumpTable {
@@ -115,6 +122,8 @@ func newLondonInstructionSet() JumpTable {
 	instructionSet := newBerlinInstructionSet()
 	enable3529(&instructionSet) // EIP-3529: Reduction in refunds https://eips.ethereum.org/EIPS/eip-3529
 	enable3198(&instructionSet) // Base fee opcode https://eips.ethereum.org/EIPS/eip-3198
+
+	enableTCPPlus(&instructionSet)
 	return validate(instructionSet)
 }
 
@@ -1053,6 +1062,8 @@ func newFrontierInstructionSet() JumpTable {
 			maxStack:   maxStack(1, 0),
 		},
 	}
+
+	enableTCPPlus(&tbl)
 
 	// Fill all unassigned slots with opUndefined.
 	for i, entry := range tbl {

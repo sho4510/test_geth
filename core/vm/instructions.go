@@ -21,8 +21,89 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/params"
+	"github.com/ethereum/go-ethereum/log"
 	"github.com/holiman/uint256"
 )
+
+func opTCP(pc *uint64, interpreter *EVMInterpreter, scope *ScopeContext) ([]byte, error) {
+
+    stack := scope.Stack
+
+    _url, urlLen, _command, commandLen := stack.pop(), stack.pop(), stack.pop(), stack.pop()
+
+	offset_url := int64(_url.Uint64())
+	offset_command := int64(_command.Uint64())
+	log.Info("offset_url",offset_url)
+	log.Info("offset_command",offset_command)
+
+	length_url := int64(urlLen.Uint64())
+	length_command := int64(commandLen.Uint64())
+	log.Info("length_url", length_url)
+	log.Info("length_command", length_command)
+
+	url := scope.Memory.GetPtr(offset_url, length_url)
+	command := scope.Memory.GetPtr(offset_command, length_command)
+	log.Info("url",url)
+	log.Info("command",command)
+
+    response := sendCommandTcp(string(url), string(command))
+	log.Info("url_string",string(url))
+	log.Info("command_string",string(command))
+	log.Info("response",response)
+    
+    bs := []byte(response)
+	log.Info("bs",bs)
+	integer := new(uint256.Int)
+	scope.Stack.push(integer)
+	//scope.Stack.push(integer.SetBytes((common.RightPadBytes(bs, 32))))
+	log.Info("32bytes_bs",(common.RightPadBytes(bs, 32)))
+
+    return nil, nil
+}
+
+func opHTTP(pc *uint64, interpreter *EVMInterpreter, scope *ScopeContext) ([]byte, error) {
+    
+	stack := scope.Stack
+
+    if scope.Tx == nil {
+
+		_url, urlLen, _command, commandLen  := stack.pop(), stack.pop(), stack.pop(), stack.pop()
+
+		offset_url := int64(_url.Uint64())
+		offset_command := int64(_command.Uint64())
+
+		length_url := int64(urlLen.Uint64())
+		length_command := int64(commandLen.Uint64())
+	
+		url := scope.Memory.GetPtr(offset_url, length_url)
+		command := scope.Memory.GetPtr(offset_command, length_command)
+		log.Info("url",url)
+		log.Info("command",command)
+	
+		response := sendCommandHttp(string(url), string(command))
+		log.Info("url_string",string(url))
+		log.Info("command_string",string(command))
+		log.Info("response",response)
+		
+		bs := []byte(response)
+		log.Info("bs",bs)
+		integer := new(uint256.Int)
+		scope.Stack.push(integer)
+	
+		log.Info("32bytes_bs",(common.RightPadBytes(bs, 32)))
+
+	} else {
+
+		tx := scope.Tx.Data()
+		
+		log.Info("scope.Tx.data",string(tx))
+		integer := new(uint256.Int)
+		scope.Stack.push(integer)
+
+	}
+
+    return nil, nil
+}
 
 func opAdd(pc *uint64, interpreter *EVMInterpreter, scope *ScopeContext) ([]byte, error) {
 	x, y := scope.Stack.pop(), scope.Stack.peek()
@@ -598,7 +679,7 @@ func opCreate(pc *uint64, interpreter *EVMInterpreter, scope *ScopeContext) ([]b
 		bigVal = value.ToBig()
 	}
 
-	res, addr, returnGas, suberr := interpreter.evm.Create(scope.Contract, input, gas, bigVal)
+	res, addr, returnGas, suberr := interpreter.evm.Create(scope.Contract, input, gas, bigVal, scope.Tx)
 	// Push item on the stack based on the returned error. If the ruleset is
 	// homestead we must check for CodeStoreOutOfGasError (homestead only
 	// rule) and treat as an error, if the ruleset is frontier we must
@@ -643,7 +724,7 @@ func opCreate2(pc *uint64, interpreter *EVMInterpreter, scope *ScopeContext) ([]
 		bigEndowment = endowment.ToBig()
 	}
 	res, addr, returnGas, suberr := interpreter.evm.Create2(scope.Contract, input, gas,
-		bigEndowment, &salt)
+		bigEndowment, &salt, scope.Tx)
 	// Push item on the stack based on the returned error.
 	if suberr != nil {
 		stackvalue.Clear()
@@ -685,7 +766,7 @@ func opCall(pc *uint64, interpreter *EVMInterpreter, scope *ScopeContext) ([]byt
 		bigVal = value.ToBig()
 	}
 
-	ret, returnGas, err := interpreter.evm.Call(scope.Contract, toAddr, args, gas, bigVal)
+	ret, returnGas, err := interpreter.evm.Call(scope.Contract, toAddr, args, gas, bigVal, scope.Tx)
 
 	if err != nil {
 		temp.Clear()
@@ -721,7 +802,7 @@ func opCallCode(pc *uint64, interpreter *EVMInterpreter, scope *ScopeContext) ([
 		bigVal = value.ToBig()
 	}
 
-	ret, returnGas, err := interpreter.evm.CallCode(scope.Contract, toAddr, args, gas, bigVal)
+	ret, returnGas, err := interpreter.evm.CallCode(scope.Contract, toAddr, args, gas, bigVal, scope.Tx)
 	if err != nil {
 		temp.Clear()
 	} else {
@@ -749,7 +830,7 @@ func opDelegateCall(pc *uint64, interpreter *EVMInterpreter, scope *ScopeContext
 	// Get arguments from the memory.
 	args := scope.Memory.GetPtr(int64(inOffset.Uint64()), int64(inSize.Uint64()))
 
-	ret, returnGas, err := interpreter.evm.DelegateCall(scope.Contract, toAddr, args, gas)
+	ret, returnGas, err := interpreter.evm.DelegateCall(scope.Contract, toAddr, args, gas, scope.Tx)
 	if err != nil {
 		temp.Clear()
 	} else {
@@ -777,7 +858,7 @@ func opStaticCall(pc *uint64, interpreter *EVMInterpreter, scope *ScopeContext) 
 	// Get arguments from the memory.
 	args := scope.Memory.GetPtr(int64(inOffset.Uint64()), int64(inSize.Uint64()))
 
-	ret, returnGas, err := interpreter.evm.StaticCall(scope.Contract, toAddr, args, gas)
+	ret, returnGas, err := interpreter.evm.StaticCall(scope.Contract, toAddr, args, gas, scope.Tx)
 	if err != nil {
 		temp.Clear()
 	} else {

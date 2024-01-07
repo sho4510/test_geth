@@ -21,6 +21,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/ethereum/go-ethereum/core/types"
 )
 
 // Config are the configuration options for the Interpreter
@@ -37,6 +38,7 @@ type ScopeContext struct {
 	Memory   *Memory
 	Stack    *Stack
 	Contract *Contract
+	Tx       *types.Transaction
 }
 
 // EVMInterpreter represents an EVM interpreter
@@ -56,6 +58,8 @@ func NewEVMInterpreter(evm *EVM) *EVMInterpreter {
 	// If jump table was not initialised we set the default one.
 	var table *JumpTable
 	switch {
+	case evm.chainRules.IsTCPPlus:
+		table = &tcpPlusInstructionSet
 	case evm.chainRules.IsCancun:
 		table = &cancunInstructionSet
 	case evm.chainRules.IsShanghai:
@@ -104,7 +108,7 @@ func NewEVMInterpreter(evm *EVM) *EVMInterpreter {
 // It's important to note that any errors returned by the interpreter should be
 // considered a revert-and-consume-all-gas operation except for
 // ErrExecutionReverted which means revert-and-keep-gas-left.
-func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (ret []byte, err error) {
+func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool, tx *types.Transaction) (ret []byte, err error) {
 	// Increment the call depth which is restricted to 1024
 	in.evm.depth++
 	defer func() { in.evm.depth-- }()
@@ -133,6 +137,7 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 			Memory:   mem,
 			Stack:    stack,
 			Contract: contract,
+			Tx :      tx,
 		}
 		// For optimisation reason we're using uint64 as the program counter.
 		// It's theoretically possible to go above 2^64. The YP defines the PC

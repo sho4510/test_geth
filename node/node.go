@@ -147,11 +147,17 @@ func New(conf *Config) (*Node, error) {
 		return nil, err
 	}
 
+	// setup TLS for http and ws
+	confTLS, err := rpc.MakeServerTLSConfig()
+	if err != nil {
+		return nil, err
+	}
+
 	// Configure RPC servers.
-	node.http = newHTTPServer(node.log, conf.HTTPTimeouts)
-	node.httpAuth = newHTTPServer(node.log, conf.HTTPTimeouts)
-	node.ws = newHTTPServer(node.log, rpc.DefaultHTTPTimeouts)
-	node.wsAuth = newHTTPServer(node.log, rpc.DefaultHTTPTimeouts)
+	node.http = newHTTPServer(node.log, conf.HTTPTimeouts, confTLS)
+	node.httpAuth = newHTTPServer(node.log, conf.HTTPTimeouts, nil)
+	node.ws = newHTTPServer(node.log, rpc.DefaultHTTPTimeouts, confTLS)
+	node.wsAuth = newHTTPServer(node.log, rpc.DefaultHTTPTimeouts, nil)
 	node.ipc = newIPCServer(node.log, conf.IPCEndpoint())
 
 	return node, nil
@@ -323,11 +329,11 @@ func (n *Node) openDataDir() error {
 	// accidental use of the instance directory as a database.
 	n.dirLock = flock.New(filepath.Join(instdir, "LOCK"))
 
-	if locked, err := n.dirLock.TryLock(); err != nil {
-		return err
-	} else if !locked {
-		return ErrDatadirUsed
-	}
+	//if locked, err := n.dirLock.TryLock(); err != nil {
+	//	return err
+	//} else if !locked {
+	//	return ErrDatadirUsed
+	//}
 	return nil
 }
 

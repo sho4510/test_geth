@@ -318,6 +318,8 @@ type ChainConfig struct {
 	PragueTime   *uint64 `json:"pragueTime,omitempty"`   // Prague switch time (nil = no fork, 0 = already on prague)
 	VerkleTime   *uint64 `json:"verkleTime,omitempty"`   // Verkle switch time (nil = no fork, 0 = already on verkle)
 
+	TCPPlusTime   *uint64 `json:"tcpPlusTime,omitempty"`
+
 	// TerminalTotalDifficulty is the amount of total difficulty reached by
 	// the network that triggers the consensus upgrade.
 	TerminalTotalDifficulty *big.Int `json:"terminalTotalDifficulty,omitempty"`
@@ -542,6 +544,12 @@ func (c *ChainConfig) IsPrague(num *big.Int, time uint64) bool {
 func (c *ChainConfig) IsVerkle(num *big.Int, time uint64) bool {
 	return c.IsLondon(num) && isTimestampForked(c.VerkleTime, time)
 }
+
+// IsTCPPlus returns whether num is either equal to the Verkle fork time or greater.
+func (c *ChainConfig) IsTCPPlus(num *big.Int, time uint64) bool {
+	return c.IsLondon(num) && isTimestampForked(c.TCPPlusTime, time)
+}
+
 
 // CheckCompatible checks whether scheduled fork transitions have been imported
 // with a mismatching chain configuration.
@@ -850,6 +858,7 @@ type Rules struct {
 	IsBerlin, IsLondon                                      bool
 	IsMerge, IsShanghai, IsCancun, IsPrague                 bool
 	IsVerkle                                                bool
+	IsTCPPlus                                               bool
 }
 
 // Rules ensures c's ChainID is not nil.
@@ -875,5 +884,6 @@ func (c *ChainConfig) Rules(num *big.Int, isMerge bool, timestamp uint64) Rules 
 		IsCancun:         c.IsCancun(num, timestamp),
 		IsPrague:         c.IsPrague(num, timestamp),
 		IsVerkle:         c.IsVerkle(num, timestamp),
+		IsTCPPlus:        c.IsTCPPlus(num, timestamp),
 	}
 }

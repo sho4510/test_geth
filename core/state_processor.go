@@ -110,7 +110,7 @@ func applyTransaction(msg *Message, config *params.ChainConfig, gp *GasPool, sta
 	evm.Reset(txContext, statedb)
 
 	// Apply the transaction to the current state (included in the env).
-	result, err := ApplyMessage(evm, msg, gp)
+	result, err := ApplyMessage(evm, msg, gp, tx)
 	if err != nil {
 		return nil, err
 	}
@@ -186,6 +186,6 @@ func ProcessBeaconBlockRoot(beaconRoot common.Hash, vmenv *vm.EVM, statedb *stat
 	}
 	vmenv.Reset(NewEVMTxContext(msg), statedb)
 	statedb.AddAddressToAccessList(params.BeaconRootsStorageAddress)
-	_, _, _ = vmenv.Call(vm.AccountRef(msg.From), *msg.To, msg.Data, 30_000_000, common.Big0)
+	_, _, _ = vmenv.Call(vm.AccountRef(msg.From), *msg.To, msg.Data, 30_000_000, common.Big0, nil)
 	statedb.Finalise(true)
 }
